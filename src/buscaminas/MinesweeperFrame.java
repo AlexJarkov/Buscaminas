@@ -3,100 +3,131 @@ package buscaminas;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.List;
 
 public class MinesweeperFrame extends JFrame {
+    private static final long serialVersionUID = 1L;
     private static final String TITLE = "Buscaminas";
 
-    private JPanel boardPanel;
-    private JButton[][] buttons;
+    private MinesweeperBoardPanel boardPanel;
+    private JPanel boardContainer;
+    private JPanel topBar;
     private JLabel minesLeftLabel;
-    private JComboBox<String> difficultyCombo;
+    private JComboBox<Difficulty> difficultyCombo;
     private JButton newGameButton;
 
     private MinesweeperGame game;
-    private int flagsCount = 0;
+    private int currentCellSize = 28;
 
     public MinesweeperFrame() {
         super(TITLE);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         buildTopBar();
+        boardContainer = new JPanel(new BorderLayout());
+        add(boardContainer, BorderLayout.CENTER);
         // Configuración inicial: Principiante
-        startNewGame(9, 9, 10);
+        Difficulty initial = Difficulty.BEGINNER;
+        startNewGame(initial.rows, initial.cols, initial.mines);
         setLocationByPlatform(true);
     }
 
     private void buildTopBar() {
-        JPanel top = new JPanel(new BorderLayout());
-        top.setBorder(new EmptyBorder(8, 8, 8, 8));
+        topBar = new JPanel(new GridBagLayout());
+        topBar.setBorder(new EmptyBorder(8, 8, 8, 8));
 
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        left.add(new JLabel("Dificultad:"));
-        difficultyCombo = new JComboBox<>(new String[]{
-                "Principiante (9x9, 10)",
-                "Intermedio (16x16, 40)",
-                "Experto (16x30, 99)"
-        });
-        left.add(difficultyCombo);
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        controls.add(new JLabel("Dificultad:"));
+        difficultyCombo = new JComboBox<>(new DefaultComboBoxModel<>(Difficulty.values()));
+        controls.add(difficultyCombo);
 
         newGameButton = new JButton("Nueva partida");
         newGameButton.addActionListener(e -> applySelectedDifficulty());
-        left.add(newGameButton);
+        controls.add(newGameButton);
 
-        top.add(left, BorderLayout.WEST);
-
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         minesLeftLabel = new JLabel("Minas restantes: 0");
-        right.add(minesLeftLabel);
-        top.add(right, BorderLayout.EAST);
 
-        add(top, BorderLayout.NORTH);
+        GridBagConstraints gbcLeft = new GridBagConstraints();
+        gbcLeft.gridx = 0; gbcLeft.gridy = 0; gbcLeft.weightx = 1.0; gbcLeft.fill = GridBagConstraints.HORIZONTAL; gbcLeft.anchor = GridBagConstraints.WEST;
+        gbcLeft.insets = new Insets(0,0,0,8);
+        topBar.add(controls, gbcLeft);
+
+        GridBagConstraints gbcRight = new GridBagConstraints();
+        gbcRight.gridx = 1; gbcRight.gridy = 0; gbcRight.weightx = 0; gbcRight.anchor = GridBagConstraints.EAST;
+        topBar.add(minesLeftLabel, gbcRight);
+
+        topBar.addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) { updateTopBarWrap(); }
+            @Override public void componentShown(ComponentEvent e) { updateTopBarWrap(); }
+        });
+
+        add(topBar, BorderLayout.NORTH);
+    }
+
+    private void updateTopBarWrap() {
+        if (topBar == null) return;
+        GridBagLayout layout = (GridBagLayout) topBar.getLayout();
+        Component controls = topBar.getComponent(0);
+        Insets in = topBar.getInsets();
+        int available = Math.max(0, topBar.getWidth() - (in.left + in.right));
+        int needed = controls.getPreferredSize().width + minesLeftLabel.getPreferredSize().width + 16;
+        boolean collapse = available > 0 && needed > available;
+
+        GridBagConstraints gbcLeft = layout.getConstraints(controls);
+        GridBagConstraints gbcRight = layout.getConstraints(minesLeftLabel);
+        gbcLeft.gridx = 0; gbcLeft.gridy = 0; gbcLeft.weightx = 1.0; gbcLeft.fill = GridBagConstraints.HORIZONTAL; gbcLeft.anchor = GridBagConstraints.WEST;
+        if (collapse) {
+            gbcRight.gridx = 0; gbcRight.gridy = 1; gbcRight.weightx = 1.0; gbcRight.fill = GridBagConstraints.HORIZONTAL; gbcRight.anchor = GridBagConstraints.WEST;
+            gbcRight.insets = new Insets(4, 0, 0, 0);
+        } else {
+            gbcRight.gridx = 1; gbcRight.gridy = 0; gbcRight.weightx = 0.0; gbcRight.fill = GridBagConstraints.NONE; gbcRight.anchor = GridBagConstraints.EAST;
+            gbcRight.insets = new Insets(0, 0, 0, 0);
+        }
+        layout.setConstraints(controls, gbcLeft);
+        layout.setConstraints(minesLeftLabel, gbcRight);
+        topBar.revalidate();
+        topBar.repaint();
     }
 
     private void applySelectedDifficulty() {
-        int[] cfg = getSelectedConfig();
-        startNewGame(cfg[0], cfg[1], cfg[2]);
-    }
-
-    private int[] getSelectedConfig() {
-        String sel = (String) difficultyCombo.getSelectedItem();
-        if (sel == null) sel = "Principiante (9x9, 10)";
-        if (sel.startsWith("Intermedio")) {
-            return new int[]{16, 16, 40};
-        } else if (sel.startsWith("Experto")) {
-            return new int[]{16, 30, 99};
-        } else {
-            return new int[]{9, 9, 10};
-        }
+        Difficulty d = (Difficulty) difficultyCombo.getSelectedItem();
+        if (d == null) d = Difficulty.BEGINNER;
+        startNewGame(d.rows, d.cols, d.mines);
     }
 
     private void startNewGame(int rows, int cols, int mines) {
         this.game = new MinesweeperGame(rows, cols, mines);
-        game.reset();
-        flagsCount = 0;
 
-        if (boardPanel != null) {
-            remove(boardPanel);
-        }
+        if (boardPanel != null) boardContainer.remove(boardPanel);
 
-        boardPanel = new JPanel(new GridLayout(rows, cols, 1, 1));
-        boardPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
-
-        buttons = new JButton[rows][cols];
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                JButton b = createCellButton(r, c);
-                buttons[r][c] = b;
-                boardPanel.add(b);
+        boardPanel = new MinesweeperBoardPanel(game, new MinesweeperBoardPanel.Listener() {
+            @Override public void onCellsOpened(List<MinesweeperGame.Cell> opened, boolean exploded, int clickedR, int clickedC) {
+                updateMinesLeftLabel();
+                if (exploded) {
+                    revealAllMinesAndLose(clickedR, clickedC);
+                    return;
+                }
+                if (game.isWin()) handleWin();
             }
-        }
 
-        add(boardPanel, BorderLayout.CENTER);
+            @Override public void onFlagToggled() { updateMinesLeftLabel(); }
+        });
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setBorder(new EmptyBorder(8, 8, 8, 8));
+        wrap.add(boardPanel, BorderLayout.CENTER);
+        boardContainer.removeAll();
+        boardContainer.add(wrap, BorderLayout.CENTER);
         updateMinesLeftLabel();
         packToBoardSize(rows, cols);
+        if (boardContainer != null && boardContainer.getComponentListeners().length == 0) {
+            boardContainer.addComponentListener(new ComponentAdapter() {
+                @Override public void componentResized(ComponentEvent e) { recomputeCellSizeToFit(); }
+                @Override public void componentShown(ComponentEvent e) { recomputeCellSizeToFit(); }
+            });
+        }
+        SwingUtilities.invokeLater(this::recomputeCellSizeToFit);
         revalidate();
         repaint();
     }
@@ -104,125 +135,38 @@ public class MinesweeperFrame extends JFrame {
     private void packToBoardSize(int rows, int cols) {
         // Ajusta el tamaño para una experiencia adecuada, limitando tamaño de celda para tableros grandes
         int cell = Math.max(24, Math.min(36, 640 / Math.max(rows, cols)));
-        Dimension btnSize = new Dimension(cell, cell);
-        for (JButton[] row : buttons) {
-            for (JButton b : row) {
-                b.setPreferredSize(btnSize);
-            }
-        }
+        currentCellSize = cell;
+        boardPanel.setCellSize(cell);
+        boardPanel.setPreferredSize(new Dimension(cols * cell, rows * cell));
         pack();
     }
 
-    private JButton createCellButton(int row, int col) {
-        JButton b = new JButton();
-        b.setFont(b.getFont().deriveFont(Font.BOLD, 14f));
-        b.setMargin(new Insets(0, 0, 0, 0));
-        b.setFocusPainted(false);
-        b.setBackground(new Color(222, 222, 222));
-        b.setOpaque(true);
-
-        b.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                if (!b.isEnabled()) return;
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    toggleFlag(b);
-                } else if (SwingUtilities.isLeftMouseButton(e)) {
-                    if ("\u2691".equals(b.getText()) || "\uD83D\uDEA9".equals(b.getText()) || "⚑".equals(b.getText()) || "F".equals(b.getText())) {
-                        return; // no abrir si está marcado con bandera
-                    }
-                    handleOpen(row, col);
-                }
-            }
-        });
-
-        return b;
-    }
-
-    private void toggleFlag(JButton b) {
-        String t = b.getText();
-        if (t == null || t.isEmpty()) {
-            b.setText("⚑");
-            b.setForeground(new Color(180, 0, 0));
-            flagsCount++;
-        } else if ("⚑".equals(t)) {
-            b.setText("");
-            flagsCount--;
-        } else {
-            // si tiene número visible, no hacer nada
-            return;
+    private void recomputeCellSizeToFit() {
+        if (boardPanel == null || game == null) return;
+        int rows = game.getRows(), cols = game.getCols();
+        Dimension size = boardContainer.getSize();
+        if (size.width <= 0 || size.height <= 0) return;
+        int usableW = Math.max(0, size.width - 16);
+        int usableH = Math.max(0, size.height - 16);
+        int cw = usableW / cols;
+        int ch = usableH / rows;
+        int cell = Math.max(16, Math.min(64, Math.min(cw, ch)));
+        if (cell != currentCellSize) {
+            currentCellSize = cell;
+            boardPanel.setCellSize(cell);
+            boardPanel.repaint();
         }
-        updateMinesLeftLabel();
     }
 
     private void updateMinesLeftLabel() {
-        int left = Math.max(0, game.getTotalMines() - flagsCount);
+        int left = Math.max(0, game.getTotalMines() - game.getFlagsCount());
         minesLeftLabel.setText("Minas restantes: " + left);
     }
 
-    private void handleOpen(int row, int col) {
-        MinesweeperGame.OpenResult res = game.openCell(row, col);
-        if (res.exploded) {
-            revealAllMinesAndLose(row, col);
-            return;
-        }
-        updateOpenedCells(res.openedCells);
-        if (game.isWin()) {
-            handleWin();
-        }
-    }
-
-    private void updateOpenedCells(List<int[]> opened) {
-        for (int[] rc : opened) {
-            int r = rc[0], c = rc[1];
-            JButton b = buttons[r][c];
-            int adj = game.countAdjacentMines(r, c);
-            b.setEnabled(false);
-            b.setBackground(new Color(240, 240, 240));
-            b.setText(adj > 0 ? String.valueOf(adj) : "");
-            b.setForeground(colorForNumber(adj));
-        }
-    }
-
-    private Color colorForNumber(int n) {
-        switch (n) {
-            case 1: return new Color(0, 102, 204);      // azul
-            case 2: return new Color(0, 153, 0);        // verde
-            case 3: return new Color(204, 0, 0);        // rojo
-            case 4: return new Color(0, 0, 153);        // azul oscuro
-            case 5: return new Color(153, 0, 0);        // burdeos
-            case 6: return new Color(0, 153, 153);      // teal
-            case 7: return Color.BLACK;
-            case 8: return Color.GRAY;
-            default: return Color.DARK_GRAY;
-        }
-    }
+    
 
     private void revealAllMinesAndLose(int clickedR, int clickedC) {
-        // Revela todas las minas y desactiva el tablero
-        int rows = game.getRows();
-        int cols = game.getCols();
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
-                JButton b = buttons[r][c];
-                b.setEnabled(false);
-                if (game.isMine(r, c)) {
-                    b.setText("💣");
-                    b.setForeground(Color.BLACK);
-                    if (r == clickedR && c == clickedC) {
-                        b.setBackground(new Color(255, 170, 170));
-                    } else {
-                        b.setBackground(new Color(250, 210, 210));
-                    }
-                } else if (!game.isOpened(r, c)) {
-                    // opcional: mostrar números restantes
-                    int adj = game.countAdjacentMines(r, c);
-                    b.setText(adj > 0 ? String.valueOf(adj) : "");
-                    b.setForeground(colorForNumber(adj));
-                    b.setBackground(new Color(240, 240, 240));
-                }
-            }
-        }
+        boardPanel.revealAllMines(clickedR, clickedC);
 
         int choice = JOptionPane.showConfirmDialog(this,
                 "Has perdido. ¿Quieres jugar otra vez?",
@@ -236,9 +180,7 @@ public class MinesweeperFrame extends JFrame {
 
     private void handleWin() {
         // Desactiva el tablero y felicita
-        for (JButton[] row : buttons) {
-            for (JButton b : row) b.setEnabled(false);
-        }
+        boardPanel.setLocked(true);
         JOptionPane.showMessageDialog(this, "¡Has ganado!", TITLE, JOptionPane.INFORMATION_MESSAGE);
         int choice = JOptionPane.showConfirmDialog(this,
                 "¿Nueva partida?",
@@ -249,5 +191,6 @@ public class MinesweeperFrame extends JFrame {
             applySelectedDifficulty();
         }
     }
-}
 
+    
+}
