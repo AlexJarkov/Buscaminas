@@ -21,6 +21,7 @@ public class MinesweeperFrame extends JFrame {
 
     private MinesweeperGame game;
     private int currentCellSize = 28;
+    private boolean initialPacked = false;
 
     public MinesweeperFrame() {
         super(TITLE);
@@ -143,7 +144,14 @@ public class MinesweeperFrame extends JFrame {
         boardContainer.setOpaque(true);
         boardContainer.setBackground(boardPanel.getBackground());
         updateMinesLeftLabel();
-        packToBoardSize(rows, cols);
+        // Only pack the window the first time to establish an initial size.
+        if (!initialPacked) {
+            packToBoardSize(rows, cols);
+            initialPacked = true;
+        } else {
+            // Preserve current window size; align board fonts to current cells.
+            boardPanel.setCellSize(currentCellSize);
+        }
         if (boardContainer != null && boardContainer.getComponentListeners().length == 0) {
             boardContainer.addComponentListener(new ComponentAdapter() {
                 @Override public void componentResized(ComponentEvent e) { recomputeCellSizeToFit(); }
