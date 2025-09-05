@@ -10,6 +10,7 @@ import java.util.List;
 public class MinesweeperFrame extends JFrame {
     private static final long serialVersionUID = 1L;
     private static final String TITLE = "Buscaminas";
+    private static final boolean IS_MAC = System.getProperty("os.name", "").toLowerCase().contains("mac");
 
     private MinesweeperBoardPanel boardPanel;
     private JPanel boardContainer;
@@ -24,6 +25,7 @@ public class MinesweeperFrame extends JFrame {
     public MinesweeperFrame() {
         super(TITLE);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        applyPlatformWindowStyling();
         setLayout(new BorderLayout());
         buildTopBar();
         boardContainer = new JPanel(new BorderLayout());
@@ -36,7 +38,12 @@ public class MinesweeperFrame extends JFrame {
 
     private void buildTopBar() {
         topBar = new JPanel(new GridBagLayout());
-        topBar.setBorder(new EmptyBorder(8, 8, 8, 8));
+        // Add extra top padding on macOS when using a transparent title bar
+        int topPad = IS_MAC ? 28 : 8;
+        topBar.setBorder(new EmptyBorder(topPad, 8, 8, 8));
+        // With FlatLaf, match title bar background for a unified toolbar look
+        topBar.putClientProperty("FlatLaf.style", "background: @TitlePane.background;" +
+                "border: 0,0,1,0; borderColor: @TitlePane.borderColor");
 
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         controls.add(new JLabel("Dificultad:"));
@@ -44,6 +51,8 @@ public class MinesweeperFrame extends JFrame {
         controls.add(difficultyCombo);
 
         newGameButton = new JButton("Nueva partida");
+        // Use round-rect button style on macOS/FlatLaf for a native vibe
+        newGameButton.putClientProperty("JButton.buttonType", "roundRect");
         newGameButton.addActionListener(e -> applySelectedDifficulty());
         controls.add(newGameButton);
 
@@ -64,6 +73,17 @@ public class MinesweeperFrame extends JFrame {
         });
 
         add(topBar, BorderLayout.NORTH);
+    }
+
+    private void applyPlatformWindowStyling() {
+        if (!IS_MAC) return;
+        // Unify content with title bar for a native macOS look
+        JRootPane root = getRootPane();
+        root.putClientProperty("apple.awt.fullWindowContent", Boolean.TRUE);
+        root.putClientProperty("apple.awt.transparentTitleBar", Boolean.TRUE);
+        root.putClientProperty("apple.awt.windowTitleVisible", Boolean.FALSE);
+        // Allow native full-screen (green traffic light)
+        root.putClientProperty("apple.awt.fullscreenable", Boolean.TRUE);
     }
 
     private void updateTopBarWrap() {
@@ -115,10 +135,13 @@ public class MinesweeperFrame extends JFrame {
             @Override public void onFlagToggled() { updateMinesLeftLabel(); }
         });
         JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setBorder(new EmptyBorder(8, 8, 8, 8));
+        // Remove extra insets so the grid uses all available space
+        wrap.setBorder(new EmptyBorder(0, 0, 0, 0));
         wrap.add(boardPanel, BorderLayout.CENTER);
         boardContainer.removeAll();
         boardContainer.add(wrap, BorderLayout.CENTER);
+        boardContainer.setOpaque(true);
+        boardContainer.setBackground(boardPanel.getBackground());
         updateMinesLeftLabel();
         packToBoardSize(rows, cols);
         if (boardContainer != null && boardContainer.getComponentListeners().length == 0) {
@@ -133,8 +156,9 @@ public class MinesweeperFrame extends JFrame {
     }
 
     private void packToBoardSize(int rows, int cols) {
-        // Ajusta el tamaño para una experiencia adecuada, limitando tamaño de celda para tableros grandes
-        int cell = Math.max(24, Math.min(36, 640 / Math.max(rows, cols)));
+        // Fija el tamaño de celda inicial en función de las filas para que
+        // Modo Intermedio (16x16) y Modo Experto (16x30) usen el mismo tamaño.
+        int cell = Math.max(24, Math.min(36, 640 / rows));
         currentCellSize = cell;
         boardPanel.setCellSize(cell);
         boardPanel.setPreferredSize(new Dimension(cols * cell, rows * cell));
@@ -146,8 +170,8 @@ public class MinesweeperFrame extends JFrame {
         int rows = game.getRows(), cols = game.getCols();
         Dimension size = boardContainer.getSize();
         if (size.width <= 0 || size.height <= 0) return;
-        int usableW = Math.max(0, size.width - 16);
-        int usableH = Math.max(0, size.height - 16);
+        int usableW = Math.max(0, size.width);
+        int usableH = Math.max(0, size.height);
         int cw = usableW / cols;
         int ch = usableH / rows;
         int cell = Math.max(16, Math.min(64, Math.min(cw, ch)));
