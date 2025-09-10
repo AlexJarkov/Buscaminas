@@ -54,7 +54,7 @@ public class Main {
                 String out = s.hasNext() ? s.next().trim() : "";
                 return out.equalsIgnoreCase("Dark");
             }
-        } catch (Exception ignore) {
+        } catch (java.io.IOException | SecurityException ignored) {
             return false;
         }
     }
@@ -72,7 +72,7 @@ public class Main {
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
             try {
                 UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            } catch (Exception ignore) {
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ignored) {
                 // Keep default
             }
         }

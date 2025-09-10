@@ -47,7 +47,7 @@ public class MinesweeperGameTest {
                     g.openCell(r,c);
                     if (g.countAdjacentMines(r,c) > 0 && g.isOpened(r,c)) {
                         // place flags equal to count on actual mines to make chord safe
-                        int need = g.countAdjacentMines(r,c);
+                        // Ensure flags match actual adjacent mines.
                         for (int dr=-1; dr<=1; dr++)
                             for (int dc=-1; dc<=1; dc++) {
                                 if (dr==0 && dc==0) continue;
@@ -67,4 +67,3 @@ public class MinesweeperGameTest {
         assertTrue(found);
     }
 }
-

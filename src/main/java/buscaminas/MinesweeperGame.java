@@ -1,6 +1,12 @@
 package buscaminas;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
 
 public class MinesweeperGame implements IMinesweeperGame {
     public record Cell(int r, int c) implements ICell {}

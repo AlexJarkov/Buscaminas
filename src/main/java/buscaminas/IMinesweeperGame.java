@@ -1,7 +1,5 @@
 package buscaminas;
 
-import java.util.List;
-
 /**
  * Interface for the Minesweeper game model used by the UI.
  * The concrete implementation remains {@link MinesweeperGame}.

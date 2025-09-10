@@ -1,8 +1,22 @@
 package buscaminas;
 
-import javax.swing.*;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRootPane;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.List;
@@ -13,7 +27,7 @@ public class MinesweeperFrame extends JFrame {
     private static final boolean IS_MAC = System.getProperty("os.name", "").toLowerCase().contains("mac");
 
     private MinesweeperBoardPanel boardPanel;
-    private JPanel boardContainer;
+    private final JPanel boardContainer;
     private JPanel topBar;
     private JLabel minesLeftLabel;
     private JComboBox<Difficulty> difficultyCombo;
@@ -31,6 +45,11 @@ public class MinesweeperFrame extends JFrame {
         buildTopBar();
         boardContainer = new JPanel(new BorderLayout());
         add(boardContainer, BorderLayout.CENTER);
+        // Install resize listener once; avoids redundant checks later
+        boardContainer.addComponentListener(new ComponentAdapter() {
+            @Override public void componentResized(ComponentEvent e) { recomputeCellSizeToFit(); }
+            @Override public void componentShown(ComponentEvent e) { recomputeCellSizeToFit(); }
+        });
         // Configuración inicial: Principiante
         Difficulty initial = Difficulty.BEGINNER;
         startNewGame(initial.rows, initial.cols, initial.mines);
@@ -113,8 +132,8 @@ public class MinesweeperFrame extends JFrame {
     }
 
     private void applySelectedDifficulty() {
-        Difficulty d = (Difficulty) difficultyCombo.getSelectedItem();
-        if (d == null) d = Difficulty.BEGINNER;
+        int idx = difficultyCombo.getSelectedIndex();
+        Difficulty d = (idx >= 0) ? difficultyCombo.getItemAt(idx) : Difficulty.BEGINNER;
         startNewGame(d.rows, d.cols, d.mines);
     }
 
@@ -152,12 +171,7 @@ public class MinesweeperFrame extends JFrame {
             // Preserve current window size; align board fonts to current cells.
             boardPanel.setCellSize(currentCellSize);
         }
-        if (boardContainer != null && boardContainer.getComponentListeners().length == 0) {
-            boardContainer.addComponentListener(new ComponentAdapter() {
-                @Override public void componentResized(ComponentEvent e) { recomputeCellSizeToFit(); }
-                @Override public void componentShown(ComponentEvent e) { recomputeCellSizeToFit(); }
-            });
-        }
+        // Listener already installed in constructor
         SwingUtilities.invokeLater(this::recomputeCellSizeToFit);
         revalidate();
         repaint();

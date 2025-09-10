@@ -1,13 +1,26 @@
 package buscaminas;
 
-import com.formdev.flatlaf.FlatLaf;
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Polygon;
+import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
+import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
+import com.formdev.flatlaf.FlatLaf;
+
 class MinesweeperBoardPanel extends JComponent {
+    private static final long serialVersionUID = 1L;
     interface Listener {
         void onCellsOpened(List<? extends ICell> opened, boolean exploded, int clickedR, int clickedC);
         void onFlagToggled();
@@ -22,6 +35,7 @@ class MinesweeperBoardPanel extends JComponent {
     private Color[] numColors;
 
     private final IMinesweeperGame game;
+    @SuppressWarnings("unused")
     private final Listener listener;
     // Base cell size used for text sizing; actual drawing scales to component size
     private int baseCellSize = 28;
