@@ -2,8 +2,8 @@ package buscaminas;
 
 import java.util.*;
 
-public class MinesweeperGame {
-    public record Cell(int r, int c) {}
+public class MinesweeperGame implements IMinesweeperGame {
+    public record Cell(int r, int c) implements ICell {}
 
     private final int rows;
     private final int cols;
@@ -17,7 +17,7 @@ public class MinesweeperGame {
     private int openedSafeCells = 0;
     private final Random random;
 
-    public static class OpenResult {
+    public static class OpenResult implements IOpenResult {
         public final boolean exploded;
         public final List<Cell> openedCells;
 
@@ -25,6 +25,9 @@ public class MinesweeperGame {
             this.exploded = exploded;
             this.openedCells = openedCells;
         }
+
+        @Override public boolean exploded() { return exploded; }
+        @Override public List<Cell> openedCells() { return openedCells; }
     }
 
     public MinesweeperGame(int rows, int cols, int totalMines) { this(rows, cols, totalMines, new Random()); }
@@ -41,6 +44,7 @@ public class MinesweeperGame {
         this.flagged = new BitSet(rows * cols);
     }
 
+    @Override
     public void reset() {
         mines.clear();
         opened.clear();
@@ -70,13 +74,14 @@ public class MinesweeperGame {
         minesPlaced = true;
     }
 
-    public int getRows() { return rows; }
-    public int getCols() { return cols; }
-    public int getTotalMines() { return totalMines; }
-    public boolean isMine(int r, int c) { return mines.get(idx(r, c)); }
-    public boolean isOpened(int r, int c) { return opened.get(idx(r, c)); }
-    public boolean isFlagged(int r, int c) { return flagged.get(idx(r, c)); }
+    @Override public int getRows() { return rows; }
+    @Override public int getCols() { return cols; }
+    @Override public int getTotalMines() { return totalMines; }
+    @Override public boolean isMine(int r, int c) { return mines.get(idx(r, c)); }
+    @Override public boolean isOpened(int r, int c) { return opened.get(idx(r, c)); }
+    @Override public boolean isFlagged(int r, int c) { return flagged.get(idx(r, c)); }
 
+    @Override
     public boolean[][] getMines() {
         boolean[][] copy = new boolean[rows][cols];
         for (int r = 0; r < rows; r++) {
@@ -84,6 +89,7 @@ public class MinesweeperGame {
         }
         return copy;
     }
+    @Override
     public boolean[][] getOpened() {
         boolean[][] copy = new boolean[rows][cols];
         for (int r = 0; r < rows; r++) {
@@ -92,6 +98,7 @@ public class MinesweeperGame {
         return copy;
     }
 
+    @Override
     public int countAdjacentMines(int r, int c) {
         int count = 0;
         for (int dr = -1; dr <= 1; dr++) {
@@ -104,6 +111,7 @@ public class MinesweeperGame {
         return count;
     }
 
+    @Override
     public int countAdjacentFlags(int r, int c) {
         int count = 0;
         for (int dr = -1; dr <= 1; dr++) {
@@ -116,8 +124,9 @@ public class MinesweeperGame {
         return count;
     }
 
-    public int getFlagsCount() { return flagged.cardinality(); }
+    @Override public int getFlagsCount() { return flagged.cardinality(); }
 
+    @Override
     public void toggleFlag(int r, int c) {
         if (!inBounds(r, c)) return;
         int i = idx(r, c);
@@ -125,6 +134,7 @@ public class MinesweeperGame {
         if (flagged.get(i)) flagged.clear(i); else flagged.set(i);
     }
 
+    @Override
     public OpenResult openCell(int r, int c) {
         if (!inBounds(r, c)) return new OpenResult(false, Collections.emptyList());
         if (isFlagged(r, c)) return new OpenResult(false, Collections.emptyList());
@@ -173,6 +183,7 @@ public class MinesweeperGame {
         return new OpenResult(false, result);
     }
 
+    @Override
     public OpenResult chordOpen(int r, int c) {
         if (!inBounds(r, c) || !isOpened(r, c)) return new OpenResult(false, Collections.emptyList());
         int adjMines = countAdjacentMines(r, c);
@@ -201,5 +212,5 @@ public class MinesweeperGame {
         return new OpenResult(exploded, openedNow);
     }
 
-    public boolean isWin() { return openedSafeCells >= (rows * cols - totalMines); }
+    @Override public boolean isWin() { return openedSafeCells >= (rows * cols - totalMines); }
 }

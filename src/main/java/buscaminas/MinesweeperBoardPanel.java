@@ -9,7 +9,7 @@ import java.util.List;
 
 class MinesweeperBoardPanel extends JComponent {
     interface Listener {
-        void onCellsOpened(List<MinesweeperGame.Cell> opened, boolean exploded, int clickedR, int clickedC);
+        void onCellsOpened(List<? extends ICell> opened, boolean exploded, int clickedR, int clickedC);
         void onFlagToggled();
     }
 
@@ -21,7 +21,7 @@ class MinesweeperBoardPanel extends JComponent {
 
     private Color[] numColors;
 
-    private final MinesweeperGame game;
+    private final IMinesweeperGame game;
     private final Listener listener;
     // Base cell size used for text sizing; actual drawing scales to component size
     private int baseCellSize = 28;
@@ -30,7 +30,7 @@ class MinesweeperBoardPanel extends JComponent {
     private boolean locked = false;
     private Font numberFont;
 
-    MinesweeperBoardPanel(MinesweeperGame game, Listener listener) {
+    MinesweeperBoardPanel(IMinesweeperGame game, Listener listener) {
         this.game = game;
         this.listener = listener;
         setOpaque(true);
@@ -58,16 +58,16 @@ class MinesweeperBoardPanel extends JComponent {
                     }
                 } else if (SwingUtilities.isLeftMouseButton(e)) {
                     if (game.isFlagged(row, col)) return;
-                    MinesweeperGame.OpenResult res;
+                    IOpenResult res;
                     if (game.isOpened(row, col)) {
                         res = game.chordOpen(row, col);
                     } else {
                         res = game.openCell(row, col);
                     }
-                    if (res.exploded) {
+                    if (res.exploded()) {
                         revealAllMines(row, col);
                     }
-                    if (listener != null) listener.onCellsOpened(res.openedCells, res.exploded, row, col);
+                    if (listener != null) listener.onCellsOpened(res.openedCells(), res.exploded(), row, col);
                     repaint();
                 }
             }

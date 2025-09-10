@@ -19,7 +19,7 @@ public class MinesweeperFrame extends JFrame {
     private JComboBox<Difficulty> difficultyCombo;
     private JButton newGameButton;
 
-    private MinesweeperGame game;
+    private IMinesweeperGame game;
     private int currentCellSize = 28;
     private boolean initialPacked = false;
 
@@ -124,7 +124,7 @@ public class MinesweeperFrame extends JFrame {
         if (boardPanel != null) boardContainer.remove(boardPanel);
 
         boardPanel = new MinesweeperBoardPanel(game, new MinesweeperBoardPanel.Listener() {
-            @Override public void onCellsOpened(List<MinesweeperGame.Cell> opened, boolean exploded, int clickedR, int clickedC) {
+            @Override public void onCellsOpened(List<? extends ICell> opened, boolean exploded, int clickedR, int clickedC) {
                 updateMinesLeftLabel();
                 if (exploded) {
                     revealAllMinesAndLose(clickedR, clickedC);
